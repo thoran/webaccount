@@ -1,0 +1,93 @@
+# CHANGELOG
+
+## 20260717
+
+0.4.0: Selenium 4 compatibility, achieved mostly by deletion, since Selenium 4 has absorbed most of what these extensions were written for.
+
+Breaking:
+a. - WebAccount#user_agent_alias, #user_agent_alias=: Replaced by the browser: argument to new(). A sub-class which set or over-rode user_agent_alias must now pass browser: or over-ride #browser().
+b. ~ webaccount.gemspec: Require selenium-webdriver >= 4.0 and Ruby >= 3.3. This release depends on Selenium 4 behaviour and will not work on Selenium 3.
+c. ~ Thoran::Selenium::WebDriver::Driver::ElementPresentQ#element_present?(): No longer waits. The implicit wait removed in 16 below gave it up to 5s for an element to appear; it is now an instantaneous check, so a sub-class which relied on it as a wait will now silently get false rather than true. Wrap it in a Selenium::WebDriver::Wait, as login() does.
+d. /lib/WebAccount.rb/lib/webaccount.rb/: require 'webaccount', which is what the README has always documented and what the gem name implies, raised a LoadError on a case-sensitive file system. It now works, and it is require 'WebAccount' which raises instead. require 'web_account' is unaffected.
+
+1. - Thoran::Selenium::WebDriver::Remote::W3C::Bridge::ConvertLocators: The namespace no longer exists in Selenium 4, which raised a NameError on require, and locator conversion is now native.
+2. - Thoran::Selenium::WebDriver::SearchContext::ElementsPresentQ: find_elements_by() returns an empty array rather than raising, so elements_present?() was unconditionally true.
+3. - Thoran::Selenium::WebDriver::Setup: Firefox::Binary is gone from Selenium 4 and there was never a Chrome or Safari equivalent, so only the browser name branch remained, which is Selenium::WebDriver.for().
+4. - Thoran::String::ToConst: Only ever used by Setup, and Object.const_get() has handled nested constants since Ruby 2.0.
+5. - Thoran::Array::AllButFirst: Only ever used by ToConst.
+6. - Thoran::Array::FirstX: Only ever used by AllButFirst.
+7. ~ Thoran::Selenium: - the three deleted requires.
+8. ~ Thoran::Selenium::WebDriver::Driver::Attempt#attempt(): Yield self, so the documented block argument is the driver rather than nil; use retry rather than loop/break; re-raise rather than calling quit on @driver, which was never assigned, and exiting the process.
+9. ~ Thoran::Selenium::WebDriver::Driver::Attempt#attempt(): - Timeout::Error, which nothing in Selenium 4 raises, so the rescue was dead. Selenium's own timeouts, and those of Selenium::WebDriver::Wait, are Selenium::WebDriver::Error::TimeoutError. Timeout::Error also only resolved at all because selenium-webdriver happens to require 'timeout' for Firefox.
+10. + Thoran::Selenium::WebDriver::Driver::Attempt::TRANSIENT_ERRORS: The errors a flaky page actually raises: ElementClickInterceptedError, ElementNotInteractableError, NoSuchElementError, StaleElementReferenceError, TimeoutError, UnexpectedAlertOpenError, and UnknownError. Only the last two were caught before. InvalidSelectorError and NoSuchDriverError are deliberately excluded, being programming and environment errors respectively, so retrying only delays the report.
+11. ~ Thoran::Selenium::WebDriver::Driver::ElementPresentQ#element_present?(): Use the public find_elements() rather than the private bridge.
+12. /Thoran::Selenium::WebDriver::SearchContext::ElementPresentQ/Thoran::Selenium::WebDriver::Driver::ElementPresentQ/: It patches Driver, as Driver::Attempt does, so it now sits alongside it. Selenium::WebDriver::SearchContext is the find_element()/find_elements() contract which Driver, Element, and ShadowRoot implement, rather than a home for conveniences built on top of it, and Selenium itself has no presence predicate to follow.
+13. + WebAccount#default_browser(), #default_driver_options(): Return :chrome and nil, for over-riding in a sub-class.
+14. + WebAccount#browser(), #driver_options(): Fall back to the defaults. browser() also normalises a String or a capitalised Symbol, since Selenium::WebDriver.for() matches on a lowercase Symbol.
+15. ~ WebAccount#driver(): Construct the driver directly, with browser() and driver_options(), rather than via the deleted Selenium::WebDriver.setup().
+16. ~ WebAccount#driver(): - the implicit wait, since mixing implicit and explicit waits made driver_wait() poll every 5s rather than every 0.2s. See c above.
+17. + WebAccount#find(): Extracted from the four finder methods.
+18. + WebAccount#find_wait(), #default_find_timeout(): A Wait of its own for find(), at 5s. Sharing driver_wait() would have given a missing element 180s to not appear, where the implicit wait removed in 16 raised at 5s. Selenium::WebDriver::Wait ignores NoSuchElementError by default, so find() polls rather than raising, and 5s restores the previous contract.
+19. ~ WebAccount#driver_wait(): /180/30/, via the new #default_wait_timeout(). 180s was tolerable only because the implicit wait removed in 16 made each poll cost 5s, so it bought 36 polls; at the 0.2s interval it now buys 900 polls of the same page. 30s covers a submit, the authentication behind it, and the redirect, and is 90s worst case through attempt()'s three tries rather than 9 minutes.
+20. + WebAccount#username_field_selector(), #password_field_selector(), #login_page_submit_button_selector(), #logout_button_selector(): Fall back to the defaults in one place.
+21. ~ WebAccount#username_field(), #password_field(), #login_page_submit_button(), #logout_button(): Use find() and the selector methods.
+22. ~ WebAccount#logout_button(): Fix @logout_page_submit_button_selector, which was never assigned, so a supplied logout button selector was always ignored in favour of the default.
+23. ~ WebAccount#login(): Use logout_button_selector(), which no longer raises when no selector was supplied.
+24. ~ WebAccount#login(): - attempts = 0, which was unused.
+25. /WebAccount#default_username_field/WebAccount#default_username_field_selector/
+26. /WebAccount#default_password_field/WebAccount#default_password_field_selector/
+27. ~ lib/web_account.rb: /require_relative './WebAccount'/require_relative './webaccount'/, per d above.
+28. ~ WebAccount::VERSION: /0.3.1/0.4.0/
+29. + lib/webaccount.rb: require_relative './WebAccount/VERSION', so that WebAccount::VERSION is defined by requiring the library. It was previously loaded only by the gemspec.
+30. ~ lib/webaccount.rb: /require 'Thoran/Selenium'/require_relative './Thoran/Selenium'/. Thoran/Selenium ships in this gem, so requiring it by $LOAD_PATH meant it only loaded when lib was on the path, and left it to path order in a namespace which several other gems here also ship. require './lib/webaccount' now works.
+31. ~ lib/webaccount.rb: /# WebAccount.rb/# webaccount.rb/ in the header, per d above.
+32. ~ webaccount.gemspec: /spec.license = 'Ruby'/spec.license = 'MIT'/, per the more recent gems.
+33. + test/Thoran/Selenium/WebDriver/Driver/Attempt_test.rb: Cover attempt() against a dummy including the module: the value and receiver yielded, which errors are retried and which are not, the attempt count, and the warning. The transient and non-transient errors are listed in the test rather than read from TRANSIENT_ERRORS, so that the test states the intent rather than agreeing with the implementation. Nothing else in WebAccount is reachable to test: browser(), driver_options(), and the four selector methods are all private, and login(), find(), and logout() need a browser and a settled timeout.
+34. + Rakefile: rake test, per the other gems.
+35. ~ .gitignore (*.lock): Running bundle writes a Gemfile.lock, which is not committed for a gem.
+36. ~ webaccount.gemspec: + minitest, minitest-spec-context, and rake as development dependencies, and + Rakefile and test/ to spec.files.
+37. ~ webaccount.gemspec: Match the layout of the more recent gemspecs: + the dependencies=/development_dependencies= sugar; + spec.require_paths, which was missing; list spec.files explicitly, so that CHANGELOG, Gemfile, and README.md are packaged rather than lib alone; and - spec.date, which Rubygems sets itself and which was stale in every release so far.
+38. ~ README.md: + Choosing a browser, Driver options, and Timeouts; note that logged_out_xpath is required by logout() and shutdown(); prefer find() to driver.find_element() in the sub-classing example, since that example was relying on the implicit wait removed in 16; and fix a stray quotation mark, a missing comma, and a fork URL pointing at month.rb.
+
+Known: These are all one question, which is what login(), logout(), and logged_out?() should do
+when the page does not do what was expected: raise, or report. They want one answer between
+them rather than three, they are not compatibility problems, and 0.5's fixtures and
+integration tests are what would pin them, so they are left alone here.
+
+i. WebAccount#logged_out?() returns truthy or raises: Wait#until does not return false, so
+  the `if logged_out?` in logout() is dead code and logout() always either raises or logs out.
+ii. WebAccount#login() raises Selenium::WebDriver::Error::TimeoutError rather than returning
+  false when the logout button never appears, so a wrong password is an exception rather than
+  a return value. As in 0.3.1.
+iii. WebAccount#logged_out?() with no logged_out_xpath raises
+  Selenium::WebDriver::Error::InvalidSelectorError, from find_elements(:xpath, nil) reaching
+  the bridge, which sends nil.to_s. shutdown() calls logout(), so this is reachable from the
+  README's implicit-defaults usage.
+iv. Thoran::Selenium::WebDriver::Driver::ElementPresentQ#element_present?() rests on
+  find_elements() returning an empty array rather than raising, which is what the deleted
+  ElementsPresentQ in 2 above got wrong. Only a driver can confirm it, so it is untested until
+  0.5.
+
+
+## 20240407
+
+0.3.1: ./lib/README.md --> ./README.md
+
+
+## 20240407
+
+0.3.0: Can now use all of Selenium's page selectors (:css, :id, :name:, :xpath) instead of just :id and/or overriding methods in the sub-class.
+1. + WebAccount#default_username_field(): For use in username_field if username_field_selector is nil.
+2. ~ WebAccount#username_field(): Will optionally use the default_username_field if nothing is supplied.
+3. + WebAccount#default_password_field():  For use in password_field if username_field_selector is nil.
+4. ~ WebAccount#password_field(): Will optionally use the default_username_field if nothing is supplied.
+5. + WebAccount#default_login_page_submit_button_selector(): For use in login_page_submit_button if login_page_submit_button is nil.
+6. ~ WebAccount#login_page_submit_button(): Will optionally use the default_login_page_submit_button_selector if nothing is supplied.
+7. + WebAccount#default_logout_button_selector():  For use in logout_button if logout_button is nil.
+8. + WebAccount#logout_button(): Consistent with other elements having a method and will also optionally use the default_logout_button_selector if nothing is supplied.
+9. ~ WebAccount#login(): Use new generic selector for detecting logged-in state.
+10. ~ WebAccount#logout(): Use new logout_button() method instead of in-lining Selenium.
+11. ~ WebAccount::VERSION: /0.2.5/0.3.0/
+12. ~ webaccount.gemspec: Change the date, fix the summary, and the description.
+13. + CHANGELOG.txt
+14. + README.md

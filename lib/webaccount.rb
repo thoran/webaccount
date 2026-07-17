@@ -1,17 +1,17 @@
-# WebAccount.rb
+# webaccount.rb
 # WebAccount
 
 require 'selenium-webdriver'
-require 'Thoran/Selenium'
+require_relative './Thoran/Selenium'
+require_relative './WebAccount/VERSION'
 
 class WebAccount
-
   attr_accessor :username
   attr_accessor :password
-  attr_writer :user_agent_alias
 
   def initialize(
     username: nil, password: nil,
+    browser: nil, driver_options: nil,
     login_page_url: nil,
     login_page_username_field_selector: nil, login_page_password_field_selector: nil,
     login_page_submit_button_selector: nil,
@@ -19,6 +19,7 @@ class WebAccount
     logged_out_xpath: nil
   )
     @username, @password = username, password
+    @browser, @driver_options = browser, driver_options
     @login_page_url = login_page_url
     @login_page_username_field_selector, @login_page_password_field_selector = login_page_username_field_selector, login_page_password_field_selector
     @login_page_submit_button_selector = login_page_submit_button_selector
@@ -30,7 +31,6 @@ class WebAccount
     @logged_in = false
     username ||= self.username
     password ||= self.password
-    attempts = 0
     driver.attempt do
       get_login_page
       enter_username(username)
@@ -38,7 +38,7 @@ class WebAccount
       login_page_submit_button.click
     end
     @logged_in = driver_wait.until do
-      driver.element_present?(@logout_button_selector.keys.first, @logout_button_selector.values.first)
+      driver.element_present?(logout_button_selector.keys.first, logout_button_selector.values.first)
     end
   end
   alias_method :logon, :login
@@ -70,20 +70,50 @@ class WebAccount
 
   private
 
-  def user_agent_alias
-    @user_agent_alias ||= @user_agent_alias || :chrome
+  # driver construction
+
+  def default_browser
+    :chrome
+  end
+
+  def browser
+    (@browser || default_browser).to_sym.downcase
+  end
+
+  def default_driver_options
+    nil
+  end
+
+  def driver_options
+    @driver_options || default_driver_options
   end
 
   def driver
-    @driver ||= (
-      driver = Selenium::WebDriver.setup(user_agent_alias)
-      driver.manage.timeouts.implicit_wait = 5
-      driver
-    )
+    @driver ||= Selenium::WebDriver.for(browser, options: driver_options)
+  end
+
+  # waiting
+
+  # For navigation: a submit, the authentication behind it, and the redirect.
+  def default_wait_timeout
+    30
   end
 
   def driver_wait
-    @driver_wait ||= Selenium::WebDriver::Wait.new(timeout: 180)
+    @driver_wait ||= Selenium::WebDriver::Wait.new(timeout: default_wait_timeout)
+  end
+
+  # For lookups: the element should already be on a page which has loaded.
+  def default_find_timeout
+    5
+  end
+
+  def find_wait
+    @find_wait ||= Selenium::WebDriver::Wait.new(timeout: default_find_timeout)
+  end
+
+  def find(selector)
+    find_wait.until{driver.find_element(selector.keys.first, selector.values.first)}
   end
 
   # logging in
@@ -98,16 +128,16 @@ class WebAccount
     username_field.send_keys(username)
   end
 
-  def default_username_field
-    {name: "username"}
+  def default_username_field_selector
+    {name: 'username'}
+  end
+
+  def username_field_selector
+    @login_page_username_field_selector || default_username_field_selector
   end
 
   def username_field
-    if @login_page_username_field_selector
-      driver.find_element(@login_page_username_field_selector.keys.first, @login_page_username_field_selector.values.first)
-    else
-      driver.find_element(default_username_field.keys.first, default_username_field.values.first)
-    end
+    find(username_field_selector)
   end
 
   def enter_password(password = nil)
@@ -115,28 +145,28 @@ class WebAccount
     password_field.send_keys(password)
   end
 
-  def default_password_field
-    {name: "password"}
+  def default_password_field_selector
+    {name: 'password'}
+  end
+
+  def password_field_selector
+    @login_page_password_field_selector || default_password_field_selector
   end
 
   def password_field
-    if @login_page_password_field_selector
-      driver.find_element(@login_page_password_field_selector.keys.first, @login_page_password_field_selector.values.first)
-    else
-      driver.find_element(default_password_field.keys.first, default_password_field.values.first)
-    end
+    find(password_field_selector)
   end
 
   def default_login_page_submit_button_selector
     {xpath: '//input[@type="submit" and @value="Login"]'}
   end
 
+  def login_page_submit_button_selector
+    @login_page_submit_button_selector || default_login_page_submit_button_selector
+  end
+
   def login_page_submit_button
-    if @login_page_submit_button_selector
-      driver.find_element(@login_page_submit_button_selector.keys.first, @login_page_submit_button_selector.values.first)
-    else
-      driver.find_element(default_login_page_submit_button_selector.keys.first, default_login_page_submit_button_selector.values.first)
-    end
+    find(login_page_submit_button_selector)
   end
 
   # logging out
@@ -145,11 +175,11 @@ class WebAccount
     {xpath: '//input[@type="submit" and @value="Logout"]'}
   end
 
+  def logout_button_selector
+    @logout_button_selector || default_logout_button_selector
+  end
+
   def logout_button
-    if @logout_page_submit_button_selector
-      driver.find_element(@logout_button_selector.keys.first, @logout_button_selector.values.first)
-    else
-      driver.find_element(default_logout_button_selector.keys.first, default_logout_button_selector.values.first)
-    end
+    find(logout_button_selector)
   end
 end
