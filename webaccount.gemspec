@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 
   spec.author = 'thoran'
   spec.email = 'code@thoran.com'
-  spec.homepage = 'http://github.com/thoran/WebAccount'
+  spec.homepage = 'https://github.com/thoran/webaccount'
   spec.license = 'MIT'
 
   spec.require_paths = ['lib']
@@ -27,6 +27,7 @@ Gem::Specification.new do |spec|
 
   spec.files = [
     'CHANGELOG',
+    'LICENSE',
     'Gemfile',
     Dir['lib/**/*.rb'],
     'Rakefile',

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 20260822
+
+0.4.1: + LICENSE, which the gemspec has claimed without one being present.
+
+1. + LICENSE: the MIT text, copyright 2020-2026 thoran. spec.license has named MIT with no licence text in the repository, so the gem shipped a licence nobody could read.
+2. ~ webaccount.gemspec: + 'LICENSE' to spec.files, without which the file sits in the repository and still does not ship.
+3. + README.md: a License section, saying MIT, last.
+4. ~ VERSION: /0.4.0/0.4.1/
+
+
 ## 20260717
 
 0.4.0: Selenium 4 compatibility, achieved mostly by deletion, since Selenium 4 has absorbed most of what these extensions were written for.
