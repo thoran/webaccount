@@ -140,6 +140,18 @@ There are two, both overridable in a sub-class:
   my_account.shutdown # If necessary it logs out and then kills the selenium session.
 ```
 
+### Driving the browser once logged in
+
+`driver` is the logged-in browser, a `Selenium::WebDriver::Driver`, for whatever WebAccount doesn't do itself: fetching pages behind the login, reading them, or taking screenshots of them.
+```ruby
+  my_account = MyAccount.new(username: username, password: password)
+  my_account.login
+  my_account.driver.get('https://mysite.com/members/page')
+  my_account.driver.page_source
+  my_account.driver.save_screenshot('page.png')
+  my_account.shutdown
+```
+
 ### Overriding the login method to customise logins
 ```ruby
   require 'webaccount'

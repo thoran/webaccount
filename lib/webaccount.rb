@@ -56,6 +56,10 @@ class WebAccount
     driver.quit
   end
 
+  def driver
+    @driver ||= Selenium::WebDriver.for(browser, options: driver_options)
+  end
+
   # predicate methods
 
   def logged_in?
@@ -86,10 +90,6 @@ class WebAccount
 
   def driver_options
     @driver_options || default_driver_options
-  end
-
-  def driver
-    @driver ||= Selenium::WebDriver.for(browser, options: driver_options)
   end
 
   # waiting

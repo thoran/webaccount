@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 20261011
+
+0.5.0: + WebAccount#driver, public, so that the logged-in browser can be driven from outside.
+
+driver was private, so once login() had done its work the session it made could be used only by a sub-class. Something which wants the pages behind a login without being a WebAccount, a spider fetching and screenshotting them, had no way to reach the browser holding the session.
+
+1. ~ WebAccount#driver(): public, after shutdown(); what it does is unchanged, the browser being made once, with browser() and driver_options(), upon first being asked for.
+2. + test/webaccount_test.rb: driver public, made once, and made with the browser and driver options given, with Selenium::WebDriver.for swapped for a stand-in so that no browser is wanted. All three fail against 0.4.1.
+3. ~ README.md: + Driving the browser once logged in.
+4. ~ VERSION: /0.4.1/0.5.0/
+
+
 ## 20260822
 
 0.4.1: + LICENSE, which the gemspec has claimed without one being present.
