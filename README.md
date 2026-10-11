@@ -152,6 +152,12 @@ There are two, both overridable in a sub-class:
   my_account.shutdown
 ```
 
+`still_logged_in?` says whether the page now showing still has the logout button, at once rather than after waiting, so that something moving from page to page can tell when the session has ended, and log in again:
+```ruby
+  my_account.driver.get(url)
+  my_account.login unless my_account.still_logged_in?
+```
+
 ### Overriding the login method to customise logins
 ```ruby
   require 'webaccount'
@@ -186,7 +192,7 @@ Prefer `find` over `driver.find_element`: it waits up to `default_find_timeout` 
 
 ## Contributing
 
-1. Fork it: https://github.com/thoran/WebAccount/fork
+1. Fork it: https://github.com/thoran/webaccount/fork
 2. Create your feature branch: `git checkout -b my-new-feature`
 3. Commit your changes: `git commit -am 'Add some feature'`
 4. Push to the branch: `git push origin my-new-feature`

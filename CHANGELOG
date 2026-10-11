@@ -1,6 +1,16 @@
-# CHANGELOG
+# webaccount/CHANGELOG
 
 ## 20261011
+
+0.6.0: + WebAccount#still_logged_in?, which says at once whether the page now showing still has the logout button.
+
+logged_in? answers from what login() found, and is not told when a session expires afterwards; logged_out? waits up to default_wait_timeout, 30s, for the logged-out marker, which is too long to ask of every page. Something driving the browser from page to page, as 0.5.0 lets it, had no quick way to notice that the session had ended underneath it.
+
+1. + WebAccount#still_logged_in?(): whether the logout button is on the page now showing, by element_present?, which does not wait; and logged_in? is brought into line with the answer.
+2. ~ test/webaccount_test.rb: + true and false with logged_in? following, and a single look rather than a wait, with a stand-in for the browser. All three fail against 0.5.0.
+3. ~ README.md: + still_logged_in?, under Driving the browser once logged in; /WebAccount\/fork/webaccount\/fork/ in Contributing, the repository having been renamed webaccount.
+4. ~ CHANGELOG: /# CHANGELOG/# webaccount\/CHANGELOG/, after the repository.
+5. ~ VERSION: /0.5.0/0.6.0/
 
 0.5.0: + WebAccount#driver, public, so that the logged-in browser can be driven from outside.
 

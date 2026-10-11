@@ -42,4 +42,35 @@ describe WebAccount do
       end
     end
   end
+
+  describe "#still_logged_in?" do
+    def account_with_page(logout_button_present)
+      page = Object.new
+      page.define_singleton_method(:element_present?){|how, what| (@asked ||= []) << [how, what]; logout_button_present}
+      page.define_singleton_method(:asked){@asked}
+      account = WebAccount.new(logout_button_selector: {css: '#logout'})
+      account.instance_variable_set(:@driver, page)
+      [account, page]
+    end
+
+    it "is true, and makes logged_in? true, where the page has the logout button" do
+      account, page = account_with_page(true)
+      _(account.still_logged_in?).must_equal(true)
+      _(account.logged_in?).must_equal(true)
+      _(page.asked).must_equal([[:css, '#logout']])
+    end
+
+    it "is false, and makes logged_in? false, where the page has not" do
+      account, _page = account_with_page(false)
+      account.instance_variable_set(:@logged_in, true)
+      _(account.still_logged_in?).must_equal(false)
+      _(account.logged_in?).must_equal(false)
+    end
+
+    it "asks once rather than waiting for the button to appear" do
+      account, page = account_with_page(false)
+      account.still_logged_in?
+      _(page.asked.length).must_equal(1)
+    end
+  end
 end

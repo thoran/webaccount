@@ -72,6 +72,10 @@ class WebAccount
     end
   end
 
+  def still_logged_in?
+    @logged_in = driver.element_present?(logout_button_selector.keys.first, logout_button_selector.values.first)
+  end
+
   private
 
   # driver construction
