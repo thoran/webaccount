@@ -1,5 +1,17 @@
 # webaccount/CHANGELOG
 
+## 20261103
+
+0.6.1: ~ WebAccount#shutdown quits the browser even where logging out fails.
+
+A logout which raised, its button not found or the logged-out marker not appearing, left the browser open and still logged in.
+
+1. ~ WebAccount#shutdown(): driver.quit in an ensure.
+2. ~ test/webaccount_test.rb: + shutdown logs out then quits, quits where logging out raises, and doesn't log out where not logged in. The second fails against 0.6.0.
+3. ~ README.md: shutdown kills the session even if logging out fails.
+4. ~ VERSION: /0.6.0/0.6.1/
+
+
 ## 20261011
 
 0.6.0: + WebAccount#still_logged_in?, which says at once whether the page now showing still has the logout button.

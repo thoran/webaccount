@@ -51,8 +51,10 @@ class WebAccount
   end
   alias_method :logoff, :logout
 
+  # The browser is quit whether or not logging out succeeds, so as a failed logout doesn't leave a logged-in browser behind.
   def shutdown
     logout if logged_in?
+  ensure
     driver.quit
   end
 

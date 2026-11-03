@@ -137,7 +137,7 @@ There are two, both overridable in a sub-class:
   my_account = MyAccount.new(username: username, password: password)
   my_account.login
   my_account.logout
-  my_account.shutdown # If necessary it logs out and then kills the selenium session.
+  my_account.shutdown # If necessary it logs out, and then, even if logging out fails, kills the selenium session.
 ```
 
 ### Driving the browser once logged in

@@ -43,6 +43,40 @@ describe WebAccount do
     end
   end
 
+  describe "#shutdown" do
+    def account_with_browser(logged_in:)
+      browser = Object.new
+      browser.define_singleton_method(:quit){@quit = true}
+      browser.define_singleton_method(:quit?){!!@quit}
+      account = WebAccount.new
+      account.instance_variable_set(:@driver, browser)
+      account.instance_variable_set(:@logged_in, logged_in)
+      [account, browser]
+    end
+
+    it "logs out, then quits the browser" do
+      account, browser = account_with_browser(logged_in: true)
+      account.define_singleton_method(:logout){@logged_out = true}
+      account.shutdown
+      _(account.instance_variable_get(:@logged_out)).must_equal(true)
+      _(browser.quit?).must_equal(true)
+    end
+
+    it "quits the browser even where logging out fails" do
+      account, browser = account_with_browser(logged_in: true)
+      account.define_singleton_method(:logout){raise Selenium::WebDriver::Error::TimeoutError}
+      _{account.shutdown}.must_raise(Selenium::WebDriver::Error::TimeoutError)
+      _(browser.quit?).must_equal(true)
+    end
+
+    it "doesn't log out where not logged in" do
+      account, browser = account_with_browser(logged_in: false)
+      account.define_singleton_method(:logout){raise 'logged out'}
+      account.shutdown
+      _(browser.quit?).must_equal(true)
+    end
+  end
+
   describe "#still_logged_in?" do
     def account_with_page(logout_button_present)
       page = Object.new
