@@ -89,10 +89,33 @@ $ gem install webaccount
 
 ### Driver options
 
-`driver_options` is passed to `Selenium::WebDriver.for` as `options:`. It defaults to nil, which is what Selenium itself defaults to, so leaving it alone gets you a stock browser.
+For Chrome and Firefox, WebAccount builds the options itself:
+
+- With `profile_directory`, the browser starts with that profile, kept between runs, so that a site sees a returning browser. Without it, the browser gets a fresh temporary profile each time.
+- With `download_directory`, which defaults to `~/Downloads`, the browser downloads there without asking where, and opens nothing it downloads. Both save PDFs rather than showing them.
+- With `headless: true`, the browser runs without a window.
+- With `user_agent`, the browser sends that string in place of its own. Leave it unset unless a site needs it: a fixed string goes out of date, and a user agent that disagrees with the browser actually running is itself a sign of automation.
+- Neither browser offers to save passwords.
+- Chrome's automation flags are masked. Firefox has no preference that masks `navigator.webdriver`.
+
+```ruby
+  MyAccount.new(
+    username: username, password: password,
+    browser: :firefox,
+    profile_directory: '~/.my_account/profile',
+    download_directory: '~/statements',
+    headless: true,
+    window_size: [1280, 800]
+  )
+```
+For any other browser, the options are nil, which is Selenium's own default.
+
+`window_size`, a width and a height, sizes the window once the browser has started, for any browser. A site's layout depends on the window's width, and a narrow window, as a headless browser may start with, can get a mobile layout whose selectors differ.
+
+`driver_options` replaces all of this, apart from `window_size`. It is passed to `Selenium::WebDriver.for` as `options:`.
 ```ruby
   options = Selenium::WebDriver::Chrome::Options.new
-  options.add_argument('--headless=new')
+  options.add_argument('--lang=en-AU')
 
   MyAccount.new(username: username, password: password, driver_options: options)
 ```
@@ -102,8 +125,8 @@ Or in a sub-class, if every instance should be configured the same way:
     private
 
     def default_driver_options
-      Selenium::WebDriver::Chrome::Options.new.tap do |options|
-        options.add_argument('--headless=new')
+      default_chrome_options.tap do |options|
+        options.add_argument('--lang=en-AU')
       end
     end
   end
@@ -111,12 +134,13 @@ Or in a sub-class, if every instance should be configured the same way:
 
 ### Timeouts
 
-There are two, both overridable in a sub-class:
+There are three, each overridable in a sub-class:
 
 | Method | Default | Waits for |
 | --- | --- | --- |
 | `default_find_timeout` | 5s | An element on a page which has already loaded. |
 | `default_wait_timeout` | 30s | Navigation: a submit, the authentication behind it, and the redirect. |
+| `default_download_timeout` | 120s | A download to finish, which takes as long as the file is large. |
 
 ```ruby
   class SlowAccount < WebAccount
@@ -189,6 +213,30 @@ Prefer `find` over `driver.find_element`: it waits up to `default_find_timeout` 
   my_account = MyAccount.new(username: username, password: password)
   my_account.list_page
 ```
+
+### Waiting for downloads
+
+`wait_for_download` returns the name of the newest file with the given extension (`csv` by default) to appear in `download_directory` since the time given. It waits up to `default_download_timeout` for one, and raises `Selenium::WebDriver::Error::TimeoutError` if none appears. A file only counts once the browser has finished it. Chrome writes `<name>.crdownload` and renames it when it's done. Firefox creates an empty `<name>` straight away and writes into `<stem>.<random>.<extensions>.part` beside it, where the stem is the name up to its first dot.
+```ruby
+  class MyAccount < WebAccount
+    def download_statement
+      clicked_at = Time.now
+      click(id: 'download')
+      wait_for_download(since: clicked_at)
+    end
+  end
+```
+
+### Page helpers
+
+These are private, for use in a sub-class:
+
+| Method | Does |
+| --- | --- |
+| `click(selector)` | Finds the element afresh on each attempt of `driver.attempt`, so an element replaced by a redrawn page is retried. If the element isn't displayed, for instance a link in a closed menu, it's clicked by JavaScript. |
+| `stale?(element)` | Whether the element has gone from the page, for waiting out a page being redrawn. |
+| `wait_for(selector)` | Waits up to `default_wait_timeout` for any displayed match. |
+| `set_value(element, value)` | Sets the value by JavaScript, so that a date picker or the like doesn't open, and then dispatches a bubbling change event. |
 
 ## Contributing
 

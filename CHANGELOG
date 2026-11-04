@@ -1,5 +1,24 @@
 # webaccount/CHANGELOG
 
+## 20261109
+
+0.7.0: Default browser options for Chrome and Firefox: a profile directory, if given, kept between runs, downloads into a download directory without asking, headless, a window size and a user agent; and waiting for a download to finish.
+
+1. + WebAccount.new(): + profile_directory:, + download_directory:, the latter defaulting to ~/Downloads, both expanded; + headless:, false by default; + window_size:, a width and a height; + user_agent:.
+2. + WebAccount#download_directory.
+3. ~ WebAccount#driver(): the window resized to window_size, if given, once the browser has started, so as it holds for any browser and whether or not driver_options are given.
+4. ~ WebAccount#default_driver_options(): Chrome's or Firefox's options, by browser(); nil for other browsers, as before.
+5. + WebAccount#default_chrome_options(): the profile directory, if given, as --user-data-dir; --headless=new, if headless; --user-agent, if given; the automation flags masked; no offer to save passwords; downloads into download_directory without asking, opening nothing, PDFs saved rather than shown.
+6. + WebAccount#default_firefox_options(): the profile directory, if given, by -profile, which geckodriver uses in place; -headless, if headless; general.useragent.override, if a user agent is given; no offer to save passwords; downloads into download_directory without asking, PDFs saved rather than shown. Firefox has no preference which masks navigator.webdriver.
+7. + WebAccount#wait_for_download(), #newest_download(): the newest finished file with the extension given, csv by default, changed in download_directory since the time given.
+8. + WebAccount#download_wait(), #default_download_timeout(): a Wait of its own for downloads, at 120s; default_wait_timeout's 30s is for logging in, and would give up on a large file still arriving.
+9. + WebAccount#downloading?(): whether a file's partner is still beside it: Chrome's <name>.crdownload, or Firefox's <stem>.<random>.<extensions>.part, where Firefox has already made an empty file under the final name.
+10. + WebAccount#click(), #stale?(), #wait_for(), #set_value(), private.
+11. ~ test/webaccount_test.rb: tests of the options for each browser, with and without a profile, a download directory, headless and a user agent; the window sized or not; driver_options: over-riding them; finding a download, past one with its .crdownload or .part still there and one older than since; click() and stale?().
+12. ~ README.md: describes Chrome and Firefox, profile and download directories, headless, window size, user agent, waiting for downloads, and the page helpers.
+13. ~ VERSION: /0.6.1/0.7.0/
+
+
 ## 20261103
 
 0.6.1: ~ WebAccount#shutdown quits the browser even where logging out fails.
