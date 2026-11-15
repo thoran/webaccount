@@ -2,6 +2,24 @@
 
 ## 20261115
 
+0.9.0: WebAccount page selectors are now public, each with a setter; and the logged-out page is found by a selector (logged_out_selector).
+
+1. ~ WebAccount#login_page_url(), #login_page_username_field_selector(), #login_page_password_field_selector(), #login_page_submit_button_selector(), #logout_button_selector(): Public.
+2. + WebAccount#login_page_url=(), #login_page_username_field_selector=(), #login_page_password_field_selector=(), #login_page_submit_button_selector=(), #logout_button_selector=(), #logged_out_selector=(), #logged_out_xpath=().
+3. ~ WebAccount.new(): + logged_out_selector:.
+4. + WebAccount#logged_out_selector(): The value given or set, else page_selectors' value. A logged_out_xpath is taken as {xpath: ...}, after a logged_out_selector given the same way.
+5. ~ WebAccount#logged_out_xpath(): Public. Deprecated for logged_out_selector until 0.10.0.
+6. ~ WebAccount#logged_out?(): Looks for logged_out_selector, and raises ArgumentError naming logged_out_selector: where there is none, rather than handing nil to the browser.
+7. + WebAccount#required(): The named value, or ArgumentError naming it.
+8. ~ WebAccount#login_page(): Uses required().
+9. + WebAccount#xpath_selector().
+10. - WebAccount#username_field_selector(), #password_field_selector(), #default_username_field_selector(), #default_password_field_selector(): Deprecated in 0.8.0.
+11. ~ WebAccount#default_login_page_username_field_selector(), #default_login_page_password_field_selector(): The defaults themselves.
+12. ~ test/webaccount_test.rb: Each of the six is public with a setter, and the value set wins over PAGE_SELECTORS; logged_out_xpath given as a keyword, in PAGE_SELECTORS or set, and giving way to logged_out_selector; the names before 0.8.0's are gone; logged_out? looks for logged_out_selector, and names it where there is none.
+13. ~ README.md: logged_out_selector in place of logged_out_xpath. /Where each page value comes from/Where each page selector comes from/. The setters are shown, and the readers are public. logged_out_xpath's deprecation in place of the old names'.
+14. ~ CHANGELOG: The markers and capitals of 0.4.1's to 0.8.0's entries are corrected.
+15. ~ VERSION: /0.8.0/0.9.0/
+
 0.8.0: WebAccount reads a sub-class's PAGE_SELECTORS, so that a sub-class needn't override initialize to pass them in.
 
 1. + WebAccount::PAGE_SELECTORS: {}.
@@ -13,8 +31,8 @@
 7. ~ WebAccount#login_page_username_field_selector(), #login_page_password_field_selector(), #login_page_submit_button_selector(), #logout_button_selector(): The keyword if given, else page_selectors' value, else the default.
 8. ~ WebAccount#login_page(): Gets login_page_url, and raises ArgumentError naming login_page_url: where there is none, rather than handing nil to the browser.
 9. ~ WebAccount#logged_out?(): Looks for logged_out_xpath.
-10. ~ test/webaccount_test.rb: + Each of the six with neither, with a sub-class's PAGE_SELECTORS, and with the keyword winning over it; page_selectors overridden, keeping a parent's values; the old names until 0.9.0; login_page naming the missing login_page_url:.
-11. ~ README.md: MyAccount.new() without PAGE_SELECTORS merged into it; + The keywords win over PAGE_SELECTORS; + Where each page value comes from: the order each reader takes, the old names until 0.9.0, and overriding PAGE_SELECTORS, page_selectors or a single reader.
+10. ~ test/webaccount_test.rb: Each of the six is tested with neither, with a sub-class's PAGE_SELECTORS, and with the keyword winning over it; and so are page_selectors overridden, keeping a parent's values, the old names until 0.9.0, and login_page naming the missing login_page_url:.
+11. ~ README.md: MyAccount.new() is called without PAGE_SELECTORS merged into it. The keywords are said to win over PAGE_SELECTORS. + Where each page value comes from, giving the order each reader takes, the old names until 0.9.0, and overriding PAGE_SELECTORS, page_selectors or a single reader.
 12. ~ VERSION: /0.7.0/0.8.0/
 
 
@@ -22,18 +40,18 @@
 
 0.7.0: Default browser options for Chrome and Firefox: a profile directory, if given, kept between runs, downloads into a download directory without asking, headless, a window size and a user agent; and waiting for a download to finish.
 
-1. + WebAccount.new(): + profile_directory:, + download_directory:, the latter defaulting to ~/Downloads, both expanded; + headless:, false by default; + window_size:, a width and a height; + user_agent:.
+1. ~ WebAccount.new(): + profile_directory:, + download_directory:, the latter defaulting to ~/Downloads, both expanded; + headless:, false by default; + window_size:, a width and a height; + user_agent:.
 2. + WebAccount#download_directory.
-3. ~ WebAccount#driver(): the window resized to window_size, if given, once the browser has started, so as it holds for any browser and whether or not driver_options are given.
+3. ~ WebAccount#driver(): The window is resized to window_size, if given, once the browser has started, so as it holds for any browser and whether or not driver_options are given.
 4. ~ WebAccount#default_driver_options(): Chrome's or Firefox's options, by browser(); nil for other browsers, as before.
-5. + WebAccount#default_chrome_options(): the profile directory, if given, as --user-data-dir; --headless=new, if headless; --user-agent, if given; the automation flags masked; no offer to save passwords; downloads into download_directory without asking, opening nothing, PDFs saved rather than shown.
-6. + WebAccount#default_firefox_options(): the profile directory, if given, by -profile, which geckodriver uses in place; -headless, if headless; general.useragent.override, if a user agent is given; no offer to save passwords; downloads into download_directory without asking, PDFs saved rather than shown. Firefox has no preference which masks navigator.webdriver.
-7. + WebAccount#wait_for_download(), #newest_download(): the newest finished file with the extension given, csv by default, changed in download_directory since the time given.
-8. + WebAccount#download_wait(), #default_download_timeout(): a Wait of its own for downloads, at 120s; default_wait_timeout's 30s is for logging in, and would give up on a large file still arriving.
-9. + WebAccount#downloading?(): whether a file's partner is still beside it: Chrome's <name>.crdownload, or Firefox's <stem>.<random>.<extensions>.part, where Firefox has already made an empty file under the final name.
+5. + WebAccount#default_chrome_options(): The profile directory, if given, as --user-data-dir; --headless=new, if headless; --user-agent, if given; the automation flags masked; no offer to save passwords; downloads into download_directory without asking, opening nothing, PDFs saved rather than shown.
+6. + WebAccount#default_firefox_options(): The profile directory, if given, by -profile, which geckodriver uses in place; -headless, if headless; general.useragent.override, if a user agent is given; no offer to save passwords; downloads into download_directory without asking, PDFs saved rather than shown. Firefox has no preference which masks navigator.webdriver.
+7. + WebAccount#wait_for_download(), #newest_download(): The newest finished file with the extension given, csv by default, changed in download_directory since the time given.
+8. + WebAccount#download_wait(), #default_download_timeout(): A Wait of its own for downloads, at 120s; default_wait_timeout's 30s is for logging in, and would give up on a large file still arriving.
+9. + WebAccount#downloading?(): Whether a file's partner is still beside it: Chrome's <name>.crdownload, or Firefox's <stem>.<random>.<extensions>.part, where Firefox has already made an empty file under the final name.
 10. + WebAccount#click(), #stale?(), #wait_for(), #set_value(), private.
-11. ~ test/webaccount_test.rb: tests of the options for each browser, with and without a profile, a download directory, headless and a user agent; the window sized or not; driver_options: over-riding them; finding a download, past one with its .crdownload or .part still there and one older than since; click() and stale?().
-12. ~ README.md: describes Chrome and Firefox, profile and download directories, headless, window size, user agent, waiting for downloads, and the page helpers.
+11. ~ test/webaccount_test.rb: Tests of the options for each browser, with and without a profile, a download directory, headless and a user agent; the window sized or not; driver_options: over-riding them; finding a download, past one with its .crdownload or .part still there and one older than since; click() and stale?().
+12. ~ README.md: Describes Chrome and Firefox, profile and download directories, headless, window size, user agent, waiting for downloads, and the page helpers.
 13. ~ VERSION: /0.6.1/0.7.0/
 
 
@@ -43,9 +61,9 @@
 
 A logout which raised, its button not found or the logged-out marker not appearing, left the browser open and still logged in.
 
-1. ~ WebAccount#shutdown(): driver.quit in an ensure.
-2. ~ test/webaccount_test.rb: + shutdown logs out then quits, quits where logging out raises, and doesn't log out where not logged in. The second fails against 0.6.0.
-3. ~ README.md: shutdown kills the session even if logging out fails.
+1. ~ WebAccount#shutdown(): Quits the driver in an ensure.
+2. ~ test/webaccount_test.rb: Tests that shutdown logs out then quits, quits where logging out raises, and doesn't log out where not logged in. The second fails against 0.6.0.
+3. ~ README.md: Says that shutdown kills the session even if logging out fails.
 4. ~ VERSION: /0.6.0/0.6.1/
 
 
@@ -55,8 +73,8 @@ A logout which raised, its button not found or the logged-out marker not appeari
 
 logged_in? answers from what login() found, and is not told when a session expires afterwards; logged_out? waits up to default_wait_timeout, 30s, for the logged-out marker, which is too long to ask of every page. Something driving the browser from page to page, as 0.5.0 lets it, had no quick way to notice that the session had ended underneath it.
 
-1. + WebAccount#still_logged_in?(): whether the logout button is on the page now showing, by element_present?, which does not wait; and logged_in? is brought into line with the answer.
-2. ~ test/webaccount_test.rb: + true and false with logged_in? following, and a single look rather than a wait, with a stand-in for the browser. All three fail against 0.5.0.
+1. + WebAccount#still_logged_in?(): Whether the logout button is on the page now showing, by element_present?, which does not wait; and logged_in? is brought into line with the answer.
+2. ~ test/webaccount_test.rb: Tests of true and false, with logged_in? following, and of a single look rather than a wait, with a stand-in for the browser. All three fail against 0.5.0.
 3. ~ README.md: + still_logged_in?, under Driving the browser once logged in; /WebAccount\/fork/webaccount\/fork/ in Contributing, the repository having been renamed webaccount.
 4. ~ CHANGELOG: /# CHANGELOG/# webaccount\/CHANGELOG/, after the repository.
 5. ~ VERSION: /0.5.0/0.6.0/
@@ -65,8 +83,8 @@ logged_in? answers from what login() found, and is not told when a session expir
 
 driver was private, so once login() had done its work the session it made could be used only by a sub-class. Something which wants the pages behind a login without being a WebAccount, a spider fetching and screenshotting them, had no way to reach the browser holding the session.
 
-1. ~ WebAccount#driver(): public, after shutdown(); what it does is unchanged, the browser being made once, with browser() and driver_options(), upon first being asked for.
-2. + test/webaccount_test.rb: driver public, made once, and made with the browser and driver options given, with Selenium::WebDriver.for swapped for a stand-in so that no browser is wanted. All three fail against 0.4.1.
+1. ~ WebAccount#driver(): Public, after shutdown(). What it does is unchanged, the browser being made once, with browser() and driver_options(), upon first being asked for.
+2. + test/webaccount_test.rb: Tests that driver is public, made once, and made with the browser and driver options given, with Selenium::WebDriver.for swapped for a stand-in so that no browser is wanted. All three fail against 0.4.1.
 3. ~ README.md: + Driving the browser once logged in.
 4. ~ VERSION: /0.4.1/0.5.0/
 
@@ -75,9 +93,9 @@ driver was private, so once login() had done its work the session it made could 
 
 0.4.1: + LICENSE, which the gemspec has claimed without one being present.
 
-1. + LICENSE: the MIT text, copyright 2020-2026 thoran. spec.license has named MIT with no licence text in the repository, so the gem shipped a licence nobody could read.
+1. + LICENSE: The MIT text, copyright 2020-2026 thoran. spec.license has named MIT with no licence text in the repository, so the gem shipped a licence nobody could read.
 2. ~ webaccount.gemspec: + 'LICENSE' to spec.files, without which the file sits in the repository and still does not ship.
-3. + README.md: a License section, saying MIT, last.
+3. ~ README.md: + A License section, saying MIT, last.
 4. ~ VERSION: /0.4.0/0.4.1/
 
 

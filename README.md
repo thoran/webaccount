@@ -33,7 +33,7 @@ $ gem install webaccount
   # => #<MyAccount @username=username, @password=password, @login_page_url=nil,
   # @login_page_password_field_selector=nil, @login_page_username_field_selector=nil,
   # @login_page_submit_button_selector=nil,
-  # @logout_button_selector=nil, @logged_out_xpath=nil>
+  # @logout_button_selector=nil, @logged_out_selector=nil>
 ```
 
 #### 2. With explicit defaults, then in the comment the ultimate defaults if those values remain nil
@@ -47,7 +47,7 @@ $ gem install webaccount
       login_page_password_field_selector: nil, # Will default to: {name: 'password'}
       login_page_submit_button_selector: nil, # Will default to: {xpath: '//input[@type="submit" and @value="Login"]'}
       logout_button_selector: nil, # Will default to: {xpath: '//input[@type="submit" and @value="Logout"]'}
-      logged_out_xpath: nil, # No default value for this, and logout and shutdown require it.
+      logged_out_selector: nil, # No default value for this, and logout and shutdown require it.
     }
   end
 
@@ -66,7 +66,7 @@ $ gem install webaccount
       login_page_password_field_selector: {id: 'password'},
       login_page_submit_button_selector: {xpath: '//button[@type="submit" and @value="Login"]'},
       logout_button_selector: {css: '#button-logout'},
-      logged_out_xpath: '//div[@class="logged-out"]',
+      logged_out_selector: {xpath: '//div[@class="logged-out"]'},
     }
   end
 
@@ -74,21 +74,24 @@ $ gem install webaccount
   # => #<MyAccount @username=username, @password=password...>
 ```
 
-WebAccount reads a sub-class's `PAGE_SELECTORS` itself, so the sub-class needn't override `initialize`. Each key is also a keyword of `new`, which wins over the sub-class's value:
+WebAccount reads a sub-class's `PAGE_SELECTORS` itself, so the sub-class needn't override `initialize`. Each key is also a keyword of `new`, and has a setter, either of which wins over the sub-class's value:
 ```ruby
   MyAccount.new(username: username, password: password, login_page_url: 'https://test.mysite.com/login')
+
+  my_account = MyAccount.new(username: username, password: password)
+  my_account.login_page_url = 'https://test.mysite.com/login'
 ```
-`login` raises `ArgumentError`, naming `login_page_url:`, if there's no login page URL.
+`login` raises `ArgumentError`, naming `login_page_url:`, if there's no login page URL, and `logout` likewise, naming `logged_out_selector:`, if there's no logged-out selector.
 
-### Where each page value comes from
+### Where each page selector comes from
 
-Each value is found by a private reader of the same name as its keyword, as `login_page_url` or `logout_button_selector`, which takes the first of:
+Each value is found by a public reader of the same name as its keyword, as `login_page_url` or `logout_button_selector`, which takes the first of:
 
-1. the keyword given to `new`;
+1. the value given to `new` or set;
 2. that key of `page_selectors`, which is the class's `PAGE_SELECTORS`;
-3. for the four selectors, `default_` and the same name, as `default_logout_button_selector`. The login page URL and the logged-out XPath have no default.
+3. for the four selectors on the login page and the logout button, `default_` and the same name, as `default_logout_button_selector`. The login page URL and the logged-out selector have no default.
 
-The readers and defaults for the username and password fields were named `username_field_selector`, `password_field_selector`, `default_username_field_selector` and `default_password_field_selector` before 0.8.0. Those names stay until 0.9.0, an override of either default still being used.
+The logged-out selector was a bare XPath named `logged_out_xpath` before 0.9.0. That name stays until 0.10.0, as a keyword, a key of `PAGE_SELECTORS` and an accessor, its XPath being taken as `{xpath: ...}`, and `logged_out_selector` given the same way winning over it.
 
 So a sub-class can give its values at any of three levels, from the coarsest to the finest.
 
@@ -109,8 +112,6 @@ A single reader, for one value which has to be worked out. Starting with `super 
 ```ruby
   class MyAccount < WebAccount
     PAGE_SELECTORS = {...}
-
-    private
 
     def login_page_url
       super || "https://mysite.com/login?t=#{Time.now.to_i}"

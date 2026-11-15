@@ -22,6 +22,7 @@ class WebAccount
     login_page_username_field_selector: nil, login_page_password_field_selector: nil,
     login_page_submit_button_selector: nil,
     logout_button_selector: nil,
+    logged_out_selector: nil,
     logged_out_xpath: nil
   )
     @username, @password = username, password
@@ -33,6 +34,7 @@ class WebAccount
     @login_page_username_field_selector, @login_page_password_field_selector = login_page_username_field_selector, login_page_password_field_selector
     @login_page_submit_button_selector = login_page_submit_button_selector
     @logout_button_selector = logout_button_selector
+    @logged_out_selector = logged_out_selector
     @logged_out_xpath = logged_out_xpath
   end
 
@@ -81,8 +83,9 @@ class WebAccount
   end
 
   def logged_out?
+    selector = required(:logged_out_selector)
     driver_wait.until do
-      driver.element_present?(:xpath, logged_out_xpath)
+      driver.element_present?(selector.keys.first, selector.values.first)
     end
   end
 
@@ -90,7 +93,56 @@ class WebAccount
     @logged_in = driver.element_present?(logout_button_selector.keys.first, logout_button_selector.values.first)
   end
 
+  # page selectors
+
+  attr_writer :login_page_url
+  attr_writer :login_page_username_field_selector
+  attr_writer :login_page_password_field_selector
+  attr_writer :login_page_submit_button_selector
+  attr_writer :logout_button_selector
+  attr_writer :logged_out_selector
+
+  def login_page_url
+    @login_page_url || page_selectors[:login_page_url]
+  end
+
+  def login_page_username_field_selector
+    @login_page_username_field_selector || page_selectors[:login_page_username_field_selector] || default_login_page_username_field_selector
+  end
+
+  def login_page_password_field_selector
+    @login_page_password_field_selector || page_selectors[:login_page_password_field_selector] || default_login_page_password_field_selector
+  end
+
+  def login_page_submit_button_selector
+    @login_page_submit_button_selector || page_selectors[:login_page_submit_button_selector] || default_login_page_submit_button_selector
+  end
+
+  def logout_button_selector
+    @logout_button_selector || page_selectors[:logout_button_selector] || default_logout_button_selector
+  end
+
+  def logged_out_selector
+    @logged_out_selector || xpath_selector(@logged_out_xpath) || page_selectors[:logged_out_selector] || xpath_selector(page_selectors[:logged_out_xpath])
+  end
+
+  # logged_out_xpath deprecated for logged_out_selector. Keep till 0.10.0.
+
+  attr_writer :logged_out_xpath
+
+  def logged_out_xpath
+    @logged_out_xpath || page_selectors[:logged_out_xpath]
+  end
+
   private
+
+  def required(name)
+    send(name) || raise(ArgumentError, "missing keyword: :#{name}")
+  end
+
+  def xpath_selector(xpath)
+    xpath && {xpath: xpath}
+  end
 
   # driver construction
 
@@ -236,12 +288,8 @@ class WebAccount
 
   # logging in
 
-  def login_page_url
-    @login_page_url || page_selectors[:login_page_url]
-  end
-
   def login_page
-    driver.get(login_page_url || raise(ArgumentError, 'missing keyword: :login_page_url'))
+    driver.get(required(:login_page_url))
   end
   alias_method :get_login_page, :login_page
 
@@ -251,11 +299,7 @@ class WebAccount
   end
 
   def default_login_page_username_field_selector
-    default_username_field_selector
-  end
-
-  def login_page_username_field_selector
-    @login_page_username_field_selector || page_selectors[:login_page_username_field_selector] || default_login_page_username_field_selector
+    {name: 'username'}
   end
 
   def username_field
@@ -268,11 +312,7 @@ class WebAccount
   end
 
   def default_login_page_password_field_selector
-    default_password_field_selector
-  end
-
-  def login_page_password_field_selector
-    @login_page_password_field_selector || page_selectors[:login_page_password_field_selector] || default_login_page_password_field_selector
+    {name: 'password'}
   end
 
   def password_field
@@ -281,10 +321,6 @@ class WebAccount
 
   def default_login_page_submit_button_selector
     {xpath: '//input[@type="submit" and @value="Login"]'}
-  end
-
-  def login_page_submit_button_selector
-    @login_page_submit_button_selector || page_selectors[:login_page_submit_button_selector] || default_login_page_submit_button_selector
   end
 
   def login_page_submit_button
@@ -297,33 +333,7 @@ class WebAccount
     {xpath: '//input[@type="submit" and @value="Logout"]'}
   end
 
-  def logout_button_selector
-    @logout_button_selector || page_selectors[:logout_button_selector] || default_logout_button_selector
-  end
-
   def logout_button
     find(logout_button_selector)
-  end
-
-  def logged_out_xpath
-    @logged_out_xpath || page_selectors[:logged_out_xpath]
-  end
-
-  # Until 0.9.0, the names before 0.8.0's, by which a sub-class may still override the defaults. The defaults themselves move into default_login_page_username_field_selector and default_login_page_password_field_selector then.
-
-  def default_username_field_selector
-    {name: 'username'}
-  end
-
-  def default_password_field_selector
-    {name: 'password'}
-  end
-
-  def username_field_selector
-    login_page_username_field_selector
-  end
-
-  def password_field_selector
-    login_page_password_field_selector
   end
 end
