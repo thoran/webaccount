@@ -6,6 +6,9 @@ require_relative './Thoran/Selenium'
 require_relative './WebAccount/VERSION'
 
 class WebAccount
+  # A sub-class gives its own, keyed as initialize's keywords are; a keyword given wins over it.
+  PAGE_SELECTORS = {}
+
   attr_accessor :username
   attr_accessor :password
   attr_reader :download_directory
@@ -79,7 +82,7 @@ class WebAccount
 
   def logged_out?
     driver_wait.until do
-      driver.element_present?(:xpath, @logged_out_xpath)
+      driver.element_present?(:xpath, logged_out_xpath)
     end
   end
 
@@ -227,10 +230,18 @@ class WebAccount
     Dir.children(File.dirname(filename)).any?{|child| child == "#{basename}.crdownload" || child.match?(firefox_part_file)}
   end
 
+  def page_selectors
+    self.class::PAGE_SELECTORS
+  end
+
   # logging in
 
+  def login_page_url
+    @login_page_url || page_selectors[:login_page_url]
+  end
+
   def login_page
-    driver.get(@login_page_url)
+    driver.get(login_page_url || raise(ArgumentError, 'missing keyword: :login_page_url'))
   end
   alias_method :get_login_page, :login_page
 
@@ -239,16 +250,16 @@ class WebAccount
     username_field.send_keys(username)
   end
 
-  def default_username_field_selector
-    {name: 'username'}
+  def default_login_page_username_field_selector
+    default_username_field_selector
   end
 
-  def username_field_selector
-    @login_page_username_field_selector || default_username_field_selector
+  def login_page_username_field_selector
+    @login_page_username_field_selector || page_selectors[:login_page_username_field_selector] || default_login_page_username_field_selector
   end
 
   def username_field
-    find(username_field_selector)
+    find(login_page_username_field_selector)
   end
 
   def enter_password(password = nil)
@@ -256,16 +267,16 @@ class WebAccount
     password_field.send_keys(password)
   end
 
-  def default_password_field_selector
-    {name: 'password'}
+  def default_login_page_password_field_selector
+    default_password_field_selector
   end
 
-  def password_field_selector
-    @login_page_password_field_selector || default_password_field_selector
+  def login_page_password_field_selector
+    @login_page_password_field_selector || page_selectors[:login_page_password_field_selector] || default_login_page_password_field_selector
   end
 
   def password_field
-    find(password_field_selector)
+    find(login_page_password_field_selector)
   end
 
   def default_login_page_submit_button_selector
@@ -273,7 +284,7 @@ class WebAccount
   end
 
   def login_page_submit_button_selector
-    @login_page_submit_button_selector || default_login_page_submit_button_selector
+    @login_page_submit_button_selector || page_selectors[:login_page_submit_button_selector] || default_login_page_submit_button_selector
   end
 
   def login_page_submit_button
@@ -287,10 +298,32 @@ class WebAccount
   end
 
   def logout_button_selector
-    @logout_button_selector || default_logout_button_selector
+    @logout_button_selector || page_selectors[:logout_button_selector] || default_logout_button_selector
   end
 
   def logout_button
     find(logout_button_selector)
+  end
+
+  def logged_out_xpath
+    @logged_out_xpath || page_selectors[:logged_out_xpath]
+  end
+
+  # Until 0.9.0, the names before 0.8.0's, by which a sub-class may still override the defaults. The defaults themselves move into default_login_page_username_field_selector and default_login_page_password_field_selector then.
+
+  def default_username_field_selector
+    {name: 'username'}
+  end
+
+  def default_password_field_selector
+    {name: 'password'}
+  end
+
+  def username_field_selector
+    login_page_username_field_selector
+  end
+
+  def password_field_selector
+    login_page_password_field_selector
   end
 end

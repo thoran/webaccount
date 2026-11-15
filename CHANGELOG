@@ -1,5 +1,23 @@
 # webaccount/CHANGELOG
 
+## 20261115
+
+0.8.0: WebAccount reads a sub-class's PAGE_SELECTORS, so that a sub-class needn't override initialize to pass them in.
+
+1. + WebAccount::PAGE_SELECTORS: {}.
+2. + WebAccount#page_selectors(): The class's PAGE_SELECTORS.
+3. + WebAccount#login_page_url(), #logged_out_xpath(): The keyword if given, else page_selectors' value.
+4. /WebAccount#username_field_selector()/login_page_username_field_selector()/, /WebAccount#password_field_selector()/login_page_password_field_selector()/: Named as their keywords are.
+5. + WebAccount#default_login_page_username_field_selector(), #default_login_page_password_field_selector(): Named as their keywords are. Until 0.9.0, each is default_username_field_selector() or default_password_field_selector(), so as a sub-class's override of the old name is still used.
+6. ~ WebAccount#username_field_selector(), #password_field_selector(): Until 0.9.0, the readers by their old names.
+7. ~ WebAccount#login_page_username_field_selector(), #login_page_password_field_selector(), #login_page_submit_button_selector(), #logout_button_selector(): The keyword if given, else page_selectors' value, else the default.
+8. ~ WebAccount#login_page(): Gets login_page_url, and raises ArgumentError naming login_page_url: where there is none, rather than handing nil to the browser.
+9. ~ WebAccount#logged_out?(): Looks for logged_out_xpath.
+10. ~ test/webaccount_test.rb: + Each of the six with neither, with a sub-class's PAGE_SELECTORS, and with the keyword winning over it; page_selectors overridden, keeping a parent's values; the old names until 0.9.0; login_page naming the missing login_page_url:.
+11. ~ README.md: MyAccount.new() without PAGE_SELECTORS merged into it; + The keywords win over PAGE_SELECTORS; + Where each page value comes from: the order each reader takes, the old names until 0.9.0, and overriding PAGE_SELECTORS, page_selectors or a single reader.
+12. ~ VERSION: /0.7.0/0.8.0/
+
+
 ## 20261109
 
 0.7.0: Default browser options for Chrome and Firefox: a profile directory, if given, kept between runs, downloads into a download directory without asking, headless, a window size and a user agent; and waiting for a download to finish.

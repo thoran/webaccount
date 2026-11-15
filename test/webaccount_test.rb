@@ -131,6 +131,102 @@ describe WebAccount do
     end
   end
 
+  describe "page selectors" do
+    def account_class(page_selectors)
+      Class.new(WebAccount){const_set(:PAGE_SELECTORS, page_selectors)}
+    end
+
+    {
+      login_page_url: [:login_page_url, nil],
+      login_page_username_field_selector: [:login_page_username_field_selector, {name: 'username'}],
+      login_page_password_field_selector: [:login_page_password_field_selector, {name: 'password'}],
+      login_page_submit_button_selector: [:login_page_submit_button_selector, {xpath: '//input[@type="submit" and @value="Login"]'}],
+      logout_button_selector: [:logout_button_selector, {xpath: '//input[@type="submit" and @value="Logout"]'}],
+      logged_out_xpath: [:logged_out_xpath, nil],
+    }.each do |keyword, (reader, default)|
+      describe "##{reader}" do
+        it "is WebAccount's own where neither #{keyword}: nor PAGE_SELECTORS gives one" do
+          value = WebAccount.new.send(reader)
+          default ? _(value).must_equal(default) : _(value).must_be_nil
+        end
+
+        it "is a sub-class's PAGE_SELECTORS[:#{keyword}]" do
+          _(account_class(keyword => 'from the sub-class').new.send(reader)).must_equal('from the sub-class')
+        end
+
+        it "is #{keyword}: over a sub-class's PAGE_SELECTORS" do
+          _(account_class(keyword => 'from the sub-class').new(keyword => 'given').send(reader)).must_equal('given')
+        end
+      end
+    end
+  end
+
+  describe "the names before 0.8.0's, until 0.9.0" do
+    it "are default_username_field_selector and default_password_field_selector, a sub-class's override of which is still used" do
+      account_class = Class.new(WebAccount) do
+        private def default_username_field_selector = {id: 'old-username'}
+        private def default_password_field_selector = {id: 'old-password'}
+      end
+      _(account_class.new.send(:login_page_username_field_selector)).must_equal({id: 'old-username'})
+      _(account_class.new.send(:login_page_password_field_selector)).must_equal({id: 'old-password'})
+    end
+
+    it "are username_field_selector and password_field_selector, which give the new readers' values" do
+      account = WebAccount.new(login_page_username_field_selector: {id: 'u'}, login_page_password_field_selector: {id: 'p'})
+      _(account.send(:username_field_selector)).must_equal({id: 'u'})
+      _(account.send(:password_field_selector)).must_equal({id: 'p'})
+    end
+  end
+
+  describe "#page_selectors" do
+    it "is the class's PAGE_SELECTORS" do
+      account_class = Class.new(WebAccount){const_set(:PAGE_SELECTORS, {login_page_url: 'https://subclass.example/login'})}
+      _(account_class.new.send(:page_selectors)).must_equal({login_page_url: 'https://subclass.example/login'})
+    end
+
+    it "is overridden for every reader, and can keep a parent's values" do
+      parent = Class.new(WebAccount){const_set(:PAGE_SELECTORS, {login_page_url: 'https://parent.example/login', logged_out_xpath: '//div[@id="parent"]'})}
+      child = Class.new(parent){private def page_selectors = super.merge(login_page_url: 'https://child.example/login')}
+      _(child.new.send(:login_page_url)).must_equal('https://child.example/login')
+      _(child.new.send(:logged_out_xpath)).must_equal('//div[@id="parent"]')
+    end
+  end
+
+  describe "#login_page" do
+    def account_with_browser(account)
+      browser = Object.new
+      browser.define_singleton_method(:get){|url| (@got ||= []) << url}
+      browser.define_singleton_method(:got){@got}
+      account.instance_variable_set(:@driver, browser)
+      [account, browser]
+    end
+
+    it "gets login_page_url" do
+      account, browser = account_with_browser(WebAccount.new(login_page_url: 'https://given.example/login'))
+      account.send(:login_page)
+      _(browser.got).must_equal(['https://given.example/login'])
+    end
+
+    it "names login_page_url: where there is none" do
+      account, browser = account_with_browser(WebAccount.new)
+      error = _{account.send(:login_page)}.must_raise(ArgumentError)
+      _(error.message).must_equal('missing keyword: :login_page_url')
+      _(browser.got).must_be_nil
+    end
+  end
+
+  describe "#logged_out?" do
+    it "looks for logged_out_xpath" do
+      page = Object.new
+      page.define_singleton_method(:element_present?){|how, what| (@asked ||= []) << [how, what]; true}
+      page.define_singleton_method(:asked){@asked}
+      account = WebAccount.new(logged_out_xpath: '//div[@id="given"]')
+      account.instance_variable_set(:@driver, page)
+      _(account.logged_out?).must_equal(true)
+      _(page.asked).must_equal([[:xpath, '//div[@id="given"]']])
+    end
+  end
+
   describe "#driver_options" do
     def driver_options(**args)
       WebAccount.new(**args).send(:driver_options)

@@ -51,10 +51,7 @@ $ gem install webaccount
     }
   end
 
-  MyAccount.new(
-    **{username: username, password: password}\
-      .merge(MyAccount::PAGE_SELECTORS)
-  )
+  MyAccount.new(username: username, password: password)
   # => #<MyAccount @username=username, @password=password...>
 ```
 
@@ -73,11 +70,52 @@ $ gem install webaccount
     }
   end
 
-  MyAccount.new(
-    **{username: username, password: password}
-      .merge(MyAccount::PAGE_SELECTORS)
-  )
+  MyAccount.new(username: username, password: password)
   # => #<MyAccount @username=username, @password=password...>
+```
+
+WebAccount reads a sub-class's `PAGE_SELECTORS` itself, so the sub-class needn't override `initialize`. Each key is also a keyword of `new`, which wins over the sub-class's value:
+```ruby
+  MyAccount.new(username: username, password: password, login_page_url: 'https://test.mysite.com/login')
+```
+`login` raises `ArgumentError`, naming `login_page_url:`, if there's no login page URL.
+
+### Where each page value comes from
+
+Each value is found by a private reader of the same name as its keyword, as `login_page_url` or `logout_button_selector`, which takes the first of:
+
+1. the keyword given to `new`;
+2. that key of `page_selectors`, which is the class's `PAGE_SELECTORS`;
+3. for the four selectors, `default_` and the same name, as `default_logout_button_selector`. The login page URL and the logged-out XPath have no default.
+
+The readers and defaults for the username and password fields were named `username_field_selector`, `password_field_selector`, `default_username_field_selector` and `default_password_field_selector` before 0.8.0. Those names stay until 0.9.0, an override of either default still being used.
+
+So a sub-class can give its values at any of three levels, from the coarsest to the finest.
+
+`PAGE_SELECTORS`, for values which are fixed, as in 2 and 3 above.
+
+`page_selectors`, for a set of values which has to be worked out, or which differs from a parent's. Overriding it replaces `PAGE_SELECTORS` for every reader, and a sub-class of a sub-class can keep its parent's values and change some:
+```ruby
+  class MyBusinessAccount < MyAccount
+    private
+
+    def page_selectors
+      super.merge(login_page_url: 'https://business.mysite.com/login')
+    end
+  end
+```
+
+A single reader, for one value which has to be worked out. Starting with `super ||` keeps the keyword winning:
+```ruby
+  class MyAccount < WebAccount
+    PAGE_SELECTORS = {...}
+
+    private
+
+    def login_page_url
+      super || "https://mysite.com/login?t=#{Time.now.to_i}"
+    end
+  end
 ```
 
 ### Choosing a browser
