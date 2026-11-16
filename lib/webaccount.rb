@@ -6,8 +6,13 @@ require_relative './Thoran/Selenium'
 require_relative './WebAccount/VERSION'
 
 class WebAccount
-  # A sub-class gives its own, keyed as initialize's keywords are; a keyword given wins over it.
-  PAGE_SELECTORS = {}
+  # The defaults, which a sub-class's own PAGE_SELECTORS overrides key by key.
+  PAGE_SELECTORS = {
+    login_page_username_field_selector: {name: 'username'},
+    login_page_password_field_selector: {name: 'password'},
+    login_page_submit_button_selector: {xpath: '//input[@type="submit" and @value="Login"]'},
+    logout_button_selector: {xpath: '//input[@type="submit" and @value="Logout"]'},
+  }
 
   attr_accessor :username
   attr_accessor :password
@@ -22,8 +27,7 @@ class WebAccount
     login_page_username_field_selector: nil, login_page_password_field_selector: nil,
     login_page_submit_button_selector: nil,
     logout_button_selector: nil,
-    logged_out_selector: nil,
-    logged_out_xpath: nil
+    logged_out_selector: nil
   )
     @username, @password = username, password
     @browser, @driver_options = browser, driver_options
@@ -35,13 +39,13 @@ class WebAccount
     @login_page_submit_button_selector = login_page_submit_button_selector
     @logout_button_selector = logout_button_selector
     @logged_out_selector = logged_out_selector
-    @logged_out_xpath = logged_out_xpath
   end
 
   def login(username: nil, password: nil)
     @logged_in = false
     username ||= self.username
     password ||= self.password
+    validate_args(login_page_url: login_page_url, username: username, password: password)
     driver.attempt do
       get_login_page
       enter_username(username)
@@ -55,6 +59,7 @@ class WebAccount
   alias_method :logon, :login
 
   def logout
+    validate_args(logged_out_selector: logged_out_selector)
     logout_button.click
     if logged_out?
       @logged_in = false
@@ -83,9 +88,8 @@ class WebAccount
   end
 
   def logged_out?
-    selector = required(:logged_out_selector)
     driver_wait.until do
-      driver.element_present?(selector.keys.first, selector.values.first)
+      driver.element_present?(logged_out_selector.keys.first, logged_out_selector.values.first)
     end
   end
 
@@ -107,41 +111,36 @@ class WebAccount
   end
 
   def login_page_username_field_selector
-    @login_page_username_field_selector || page_selectors[:login_page_username_field_selector] || default_login_page_username_field_selector
+    @login_page_username_field_selector || page_selectors[:login_page_username_field_selector]
   end
 
   def login_page_password_field_selector
-    @login_page_password_field_selector || page_selectors[:login_page_password_field_selector] || default_login_page_password_field_selector
+    @login_page_password_field_selector || page_selectors[:login_page_password_field_selector]
   end
 
   def login_page_submit_button_selector
-    @login_page_submit_button_selector || page_selectors[:login_page_submit_button_selector] || default_login_page_submit_button_selector
+    @login_page_submit_button_selector || page_selectors[:login_page_submit_button_selector]
   end
 
   def logout_button_selector
-    @logout_button_selector || page_selectors[:logout_button_selector] || default_logout_button_selector
+    @logout_button_selector || page_selectors[:logout_button_selector]
   end
 
   def logged_out_selector
-    @logged_out_selector || xpath_selector(@logged_out_xpath) || page_selectors[:logged_out_selector] || xpath_selector(page_selectors[:logged_out_xpath])
-  end
-
-  # logged_out_xpath deprecated for logged_out_selector. Keep till 0.10.0.
-
-  attr_writer :logged_out_xpath
-
-  def logged_out_xpath
-    @logged_out_xpath || page_selectors[:logged_out_xpath]
+    @logged_out_selector || page_selectors[:logged_out_selector]
   end
 
   private
 
-  def required(name)
-    send(name) || raise(ArgumentError, "missing keyword: :#{name}")
-  end
-
-  def xpath_selector(xpath)
-    xpath && {xpath: xpath}
+  def validate_args(args)
+    missing_args = []
+    args.each do |arg_name, value|
+      missing_args << arg_name unless value
+    end
+    return if missing_args.empty?
+    aggregate_error = missing_args.join(', ')
+    copula = missing_args.count > 1 ? 'are' : 'is'
+    raise ArgumentError, "#{aggregate_error} #{copula} missing."
   end
 
   # driver construction
@@ -283,23 +282,19 @@ class WebAccount
   end
 
   def page_selectors
-    self.class::PAGE_SELECTORS
+    PAGE_SELECTORS.merge(self.class::PAGE_SELECTORS.compact)
   end
 
   # logging in
 
   def login_page
-    driver.get(required(:login_page_url))
+    driver.get(login_page_url)
   end
   alias_method :get_login_page, :login_page
 
   def enter_username(username = nil)
     username ||= self.username
     username_field.send_keys(username)
-  end
-
-  def default_login_page_username_field_selector
-    {name: 'username'}
   end
 
   def username_field
@@ -311,16 +306,8 @@ class WebAccount
     password_field.send_keys(password)
   end
 
-  def default_login_page_password_field_selector
-    {name: 'password'}
-  end
-
   def password_field
     find(login_page_password_field_selector)
-  end
-
-  def default_login_page_submit_button_selector
-    {xpath: '//input[@type="submit" and @value="Login"]'}
   end
 
   def login_page_submit_button
@@ -328,10 +315,6 @@ class WebAccount
   end
 
   # logging out
-
-  def default_logout_button_selector
-    {xpath: '//input[@type="submit" and @value="Logout"]'}
-  end
 
   def logout_button
     find(logout_button_selector)

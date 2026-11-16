@@ -1,5 +1,28 @@
 # webaccount/CHANGELOG
 
+## 20261116
+
+0.10.0: WebAccount's PAGE_SELECTORS holds the defaults; login and logout name every missing value at once; and logged_out_xpath is gone.
+
+1. ~ WebAccount::PAGE_SELECTORS: The defaults for the four selectors on the login page and the logout button.
+2. ~ WebAccount#page_selectors(): WebAccount's PAGE_SELECTORS, with the sub-class's merged over it, less its nil values.
+3. ~ WebAccount#login_page_username_field_selector(), #login_page_password_field_selector(), #login_page_submit_button_selector(), #logout_button_selector(): The value given or set, else page_selectors' value.
+4. - WebAccount#default_login_page_username_field_selector(), #default_login_page_password_field_selector(), #default_login_page_submit_button_selector(), #default_logout_button_selector(): Their values are in PAGE_SELECTORS.
+5. + WebAccount#validate_args(): Raises ArgumentError naming every key whose value is nil.
+6. ~ WebAccount#login(): Validates login_page_url, username and password before starting the browser.
+7. ~ WebAccount#login_page(): - The check of login_page_url, which login() makes.
+8. ~ WebAccount#logout(): Validates logged_out_selector before clicking the logout button.
+9. ~ WebAccount#logged_out?(): - The check of logged_out_selector, which logout() makes.
+10. - WebAccount#required(): Replaced by validate_args().
+11. ~ WebAccount.new(): - logged_out_xpath:.
+12. ~ WebAccount#logged_out_selector(): The value given or set, else page_selectors' value.
+13. - WebAccount#logged_out_xpath(), #logged_out_xpath=(): Deprecated in 0.9.0.
+14. - WebAccount#xpath_selector(): Used only for logged_out_xpath.
+15. ~ test/webaccount_test.rb: Tests that page_selectors merges a sub-class's values over the defaults, keeping a default where the sub-class's value is nil; that login names every missing value before a browser is wanted; that logout names a missing logged_out_selector before clicking the logout button; and that the names removed in 0.9.0 and 0.10.0 are gone.
+16. ~ README.md: The defaults are said to be in WebAccount's PAGE_SELECTORS, and each reader's order to have two steps. Missing values are said to be named all at once. + validate_args, under Page helpers. - logged_out_xpath.
+17. ~ VERSION: /0.9.0/0.10.0/
+
+
 ## 20261115
 
 0.9.0: WebAccount page selectors are now public, each with a setter; and the logged-out page is found by a selector (logged_out_selector).

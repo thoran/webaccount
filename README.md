@@ -81,17 +81,16 @@ WebAccount reads a sub-class's `PAGE_SELECTORS` itself, so the sub-class needn't
   my_account = MyAccount.new(username: username, password: password)
   my_account.login_page_url = 'https://test.mysite.com/login'
 ```
-`login` raises `ArgumentError`, naming `login_page_url:`, if there's no login page URL, and `logout` likewise, naming `logged_out_selector:`, if there's no logged-out selector.
+`login` raises `ArgumentError` before starting the browser, naming whichever of the login page URL, the username and the password are missing. `logout` likewise names a missing logged-out selector.
 
 ### Where each page selector comes from
 
 Each value is found by a public reader of the same name as its keyword, as `login_page_url` or `logout_button_selector`, which takes the first of:
 
 1. the value given to `new` or set;
-2. that key of `page_selectors`, which is the class's `PAGE_SELECTORS`;
-3. for the four selectors on the login page and the logout button, `default_` and the same name, as `default_logout_button_selector`. The login page URL and the logged-out selector have no default.
+2. that key of `page_selectors`, which is the sub-class's `PAGE_SELECTORS` merged over WebAccount's.
 
-The logged-out selector was a bare XPath named `logged_out_xpath` before 0.9.0. That name stays until 0.10.0, as a keyword, a key of `PAGE_SELECTORS` and an accessor, its XPath being taken as `{xpath: ...}`, and `logged_out_selector` given the same way winning over it.
+WebAccount's `PAGE_SELECTORS` holds the defaults for the four selectors on the login page and the logout button. A key the sub-class leaves out, or gives as `nil`, keeps WebAccount's default. The login page URL and the logged-out selector have no default.
 
 So a sub-class can give its values at any of three levels, from the coarsest to the finest.
 
@@ -275,6 +274,7 @@ These are private, for use in a sub-class:
 | `click(selector)` | Finds the element afresh on each attempt of `driver.attempt`, so an element replaced by a redrawn page is retried. If the element isn't displayed, for instance a link in a closed menu, it's clicked by JavaScript. |
 | `stale?(element)` | Whether the element has gone from the page, for waiting out a page being redrawn. |
 | `wait_for(selector)` | Waits up to `default_wait_timeout` for any displayed match. |
+| `validate_args(args)` | Raises `ArgumentError` naming every key of `args` whose value is nil, as `username, password are missing.` |
 | `set_value(element, value)` | Sets the value by JavaScript, so that a date picker or the like doesn't open, and then dispatches a bubbling change event. |
 
 ## Contributing
